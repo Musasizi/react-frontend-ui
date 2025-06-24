@@ -20,7 +20,13 @@ export default function Chapters({ token }) {
     setChapters(data);
   };
 
-  useEffect(() => { fetchChapters(); }, [token]);
+  useEffect(() => {
+
+    fetchChapters();
+
+    
+  },
+    [token]);
 
   const handleOpen = (chapter) => {
     setEdit(chapter || null);
@@ -43,6 +49,9 @@ export default function Chapters({ token }) {
 
   return (
     <Box sx={{ width: '100%' }}>
+
+
+
       <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4" fontWeight={700}>Chapters</Typography>
         <Stack direction="row" spacing={2}>
@@ -51,7 +60,7 @@ export default function Chapters({ token }) {
             <ToggleButton value="table" aria-label="Table view"><TableRowsIcon /></ToggleButton>
           </ToggleButtonGroup>
           <Button variant="contained" color="primary" onClick={() => handleOpen()} sx={{ borderRadius: 2, boxShadow: 2 }}>
-            Add Chapter
+            Add New Chapter
           </Button>
         </Stack>
       </Stack>

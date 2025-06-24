@@ -39,6 +39,7 @@ export default function Users({ token }) {
 
   return (
     <Box>
+    
       <Typography variant="h4" fontWeight={700} mb={3}>Users</Typography>
       <Grid container spacing={3}>
         {users.map(u => (
