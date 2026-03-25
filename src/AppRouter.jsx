@@ -25,6 +25,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Chapters from './pages/Chapters';
 import Users from './pages/Users';
+import Reports from './pages/Reports';
 
 // ── Helper: decode JWT payload ────────────────────────────────────────────────
 /**
@@ -108,6 +109,17 @@ export default function AppRouter() {
             <ProtectedRoute token={token}>
               <ModernLayout onLogout={handleLogout} user={user}>
                 <Users token={token} />
+              </ModernLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute token={token}>
+              <ModernLayout onLogout={handleLogout} user={user}>
+                <Reports token={token} />
               </ModernLayout>
             </ProtectedRoute>
           }

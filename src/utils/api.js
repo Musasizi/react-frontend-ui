@@ -72,6 +72,10 @@ export const register = (username, password, email) =>
 export const getChapters = () =>
   request(`${API_BASE}/chapters`);
 
+/** GET /api/chapters/stats – Returns aggregate stats (requires auth) */
+export const getChapterStats = (token) =>
+  request(`${API_BASE}/chapters/stats`, { headers: authHeaders(token) });
+
 /** GET /api/chapters/:id – Public; returns a single chapter */
 export const getChapter = (id) =>
   request(`${API_BASE}/chapters/${id}`);

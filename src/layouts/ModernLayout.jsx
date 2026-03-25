@@ -29,6 +29,7 @@ import {
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import PeopleIcon from '@mui/icons-material/People';
+import AssessmentIcon from '@mui/icons-material/Assessment';
 import LogoutIcon from '@mui/icons-material/Logout';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import ucuLogo from '../assets/uculogotousenobg.png';
@@ -51,6 +52,7 @@ const NAV_ITEMS = [
   { path: '/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
   { path: '/chapters', label: 'Chapters', icon: <MenuBookIcon /> },
   { path: '/users', label: 'Users', icon: <PeopleIcon /> },
+  { path: '/reports', label: 'Reports', icon: <AssessmentIcon /> },
 ];
 
 // Map path → human-readable breadcrumb label
@@ -58,6 +60,7 @@ const PAGE_LABELS = {
   '/dashboard': 'Dashboard',
   '/chapters': 'Chapters',
   '/users': 'Users',
+  '/reports': 'Reports',
 };
 
 // Pick an avatar background from a small palette, based on first character of username
