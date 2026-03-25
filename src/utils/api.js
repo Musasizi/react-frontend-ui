@@ -51,7 +51,7 @@ const request = async (url, options = {}) => {
 // ── Auth ──────────────────────────────────────────────────────────────────────
 
 /** POST /api/login – Returns { token, user } on success */
-export const login = (username, password) =>
+export const login = ({ username, password }) =>
   request(`${API_BASE}/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
