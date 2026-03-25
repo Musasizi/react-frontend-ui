@@ -1,16 +1,11 @@
-import { Container } from '@mui/material';
-import { BrowserRouter as Router } from 'react-router-dom';
+// App.jsx – Root component.
+// It renders the AppRouter, which already contains its own BrowserRouter,
+// so we do NOT add another <Router> wrapper here.
 import AppRouter from './AppRouter';
 import './App.css';
 
 function App() {
-  return (
-    <Router>
-      <Container maxWidth="sm" style={{ marginTop: 40 }}>
-        <AppRouter />
-      </Container>
-    </Router>
-  );
+  return <AppRouter />;
 }
 
 export default App;
