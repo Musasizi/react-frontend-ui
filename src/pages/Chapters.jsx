@@ -12,6 +12,8 @@
 
 import { useEffect, useState } from 'react';
 import { getChapters, createChapter, updateChapter, deleteChapter } from '../utils/api';
+import { useToast } from '../hooks/useToast';
+import Toast from '../components/Toast';
 import {
   Box, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, Grid, Card, CardContent, CardActions, IconButton, Stack,
@@ -34,6 +36,8 @@ const UCU = {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function Chapters({ token }) {
+  const { toast, showToast, hideToast } = useToast();
+
   const [chapters, setChapters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -74,13 +78,18 @@ export default function Chapters({ token }) {
     if (!form.name.trim()) { setFormError('Chapter name is required.'); return; }
     setSaving(true); setFormError('');
     try {
-      editTarget
-        ? await updateChapter(editTarget.id, form, token)
-        : await createChapter(form, token);
+      if (editTarget) {
+        await updateChapter(editTarget.id, form, token);
+        showToast(`"${form.name}" updated successfully.`, 'success', 'Chapter Updated');
+      } else {
+        await createChapter(form, token);
+        showToast(`"${form.name}" was created.`, 'success', 'Chapter Added');
+      }
       setFormOpen(false);
       fetchChapters();
     } catch (err) {
       setFormError(err.message);
+      showToast(err.message, 'error', 'Save Failed');
     } finally {
       setSaving(false);
     }
@@ -90,12 +99,15 @@ export default function Chapters({ token }) {
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
+    const name = deleteTarget.name;
     try {
       await deleteChapter(deleteTarget.id, token);
       setDeleteTarget(null);
+      showToast(`"${name}" was deleted.`, 'warning', 'Chapter Deleted');
       fetchChapters();
     } catch (err) {
       setError(err.message);
+      showToast(err.message, 'error', 'Delete Failed');
     } finally {
       setDeleting(false);
     }
@@ -306,6 +318,9 @@ export default function Chapters({ token }) {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* ── Toast Notifications ── */}
+      <Toast toast={toast} onClose={hideToast} />
     </Box>
   );
 }

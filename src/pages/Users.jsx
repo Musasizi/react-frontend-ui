@@ -8,6 +8,8 @@
 
 import { useEffect, useState } from 'react';
 import { getUsers, updateUser, deleteUser } from '../utils/api';
+import { useToast } from '../hooks/useToast';
+import Toast from '../components/Toast';
 import {
   Box, Typography, Grid, Card, CardContent, CardActions, IconButton,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button,
@@ -36,6 +38,8 @@ const avatarBg = (name = '') =>
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function Users({ token }) {
+  const { toast, showToast, hideToast } = useToast();
+
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -81,10 +85,12 @@ export default function Users({ token }) {
     setSaving(true); setFormError('');
     try {
       await updateUser(editTarget.id, form, token);
+      showToast(`${form.username}'s details were updated.`, 'success', 'User Updated');
       setFormOpen(false);
       fetchUsers();
     } catch (err) {
       setFormError(err.message);
+      showToast(err.message, 'error', 'Update Failed');
     } finally {
       setSaving(false);
     }
@@ -94,12 +100,15 @@ export default function Users({ token }) {
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
+    const name = deleteTarget.username;
     try {
       await deleteUser(deleteTarget.id, token);
       setDeleteTarget(null);
+      showToast(`${name} was removed.`, 'warning', 'User Removed');
       fetchUsers();
     } catch (err) {
       setError(err.message);
+      showToast(err.message, 'error', 'Delete Failed');
     } finally {
       setDeleting(false);
     }
@@ -324,6 +333,9 @@ export default function Users({ token }) {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* ── Toast Notifications ── */}
+      <Toast toast={toast} onClose={hideToast} />
     </Box>
   );
 }

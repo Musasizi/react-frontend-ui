@@ -22,6 +22,8 @@ import LockIcon from '@mui/icons-material/Lock';
 import PersonIcon from '@mui/icons-material/Person';
 import { login } from '../utils/api';
 import ucuLogo from '../assets/uculogotousenobg.png';
+import { useToast } from '../hooks/useToast';
+import Toast from '../components/Toast';
 
 // UCU brand colours — duplicated here so this file is self-contained
 const UCU = {
@@ -35,6 +37,7 @@ const UCU = {
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function Login() {
   const navigate = useNavigate();
+  const { toast, showToast, hideToast } = useToast();
 
   // Form fields
   const [username, setUsername] = useState('');
@@ -58,10 +61,12 @@ export default function Login() {
     setLoading(true);
     try {
       const { token } = await login({ username, password });
+      showToast(`Welcome back, ${username}!`, 'success', 'Login Successful');
       localStorage.setItem('token', token);   // persist token for future requests
-      navigate('/dashboard');
+      setTimeout(() => navigate('/dashboard'), 900);
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.');
+      showToast(err.message || 'Invalid credentials.', 'error', 'Login Failed');
     } finally {
       setLoading(false);
     }
@@ -258,6 +263,9 @@ export default function Login() {
           </Typography>
         </Box>
       </Box>
+
+      {/* ── Toast Notifications ── */}
+      <Toast toast={toast} onClose={hideToast} />
     </Box>
   );
 }

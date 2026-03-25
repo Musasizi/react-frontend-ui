@@ -23,6 +23,8 @@ import LockIcon from '@mui/icons-material/Lock';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 import { register } from '../utils/api';
 import ucuLogo from '../assets/uculogotousenobg.png';
+import { useToast } from '../hooks/useToast';
+import Toast from '../components/Toast';
 
 const UCU = {
   maroon: '#7B1C1C',
@@ -35,6 +37,7 @@ const UCU = {
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function Register() {
   const navigate = useNavigate();
+  const { toast, showToast, hideToast } = useToast();
 
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -64,10 +67,12 @@ export default function Register() {
     setLoading(true);
     try {
       const data = await register(username, password, email);
+      showToast(data.message || 'Account created! Redirecting to login…', 'success', 'Welcome to UCU!');
       setSuccess(data.message || 'Account created! Redirecting to login…');
-      setTimeout(() => navigate('/login'), 1500);
+      setTimeout(() => navigate('/login'), 1800);
     } catch (err) {
       setError(err.message || 'Registration failed. Please try again.');
+      showToast(err.message || 'Registration failed.', 'error', 'Registration Failed');
     } finally {
       setLoading(false);
     }
@@ -244,6 +249,9 @@ export default function Register() {
           </Typography>
         </Box>
       </Box>
+
+      {/* ── Toast Notifications ── */}
+      <Toast toast={toast} onClose={hideToast} />
     </Box>
   );
 }
