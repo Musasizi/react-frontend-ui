@@ -1,30 +1,20 @@
 /**
- * pages/Reports.jsx — UCU Analytics & Reports Page
- *
- * Sections:
- *   1. Summary stat cards  (chapters, users, enrolments)
- *   2. Chapters by Type    — Recharts PieChart / Donut
- *   3. Enrolments per Chapter — Recharts BarChart
- *   4. Chapters by Status  — simple stats row
- *   5. Recent Activity feed (latest 5 chapters added)
+ * pages/Reports.jsx — UCU Analytics & Reports
  */
-
 import { useEffect, useState } from 'react';
 import { getChapterStats } from '../utils/api';
 import {
     Box, Typography, Stack, Paper, Grid, Chip, CircularProgress,
     Alert, Divider, Table, TableHead, TableRow, TableCell, TableBody,
-    TableContainer, Avatar,
+    TableContainer, Avatar, LinearProgress,
 } from '@mui/material';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
-import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
-import {
-    PieChart, Pie, Cell, Tooltip as RTooltip, Legend, ResponsiveContainer,
-    BarChart, Bar, XAxis, YAxis, CartesianGrid,
-} from 'recharts';
+import ArchiveIcon from '@mui/icons-material/Archive';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import ReactApexChart from 'react-apexcharts';
 
 const UCU = {
     maroon: '#7B1C1C',
@@ -34,47 +24,36 @@ const UCU = {
     white: '#FFFFFF',
 };
 
-// Pie chart colours — one per chapter type
-const TYPE_COLORS = ['#1A4A7B', '#1A5C2E', '#7B1C1C', '#6A1B9A', '#E65100'];
 const TYPE_META = {
-    lecture: { label: 'Lecture', color: '#1A4A7B' },
-    lab: { label: 'Lab', color: '#1A5C2E' },
-    tutorial: { label: 'Tutorial', color: UCU.maroon },
-    seminar: { label: 'Seminar', color: '#6A1B9A' },
-    workshop: { label: 'Workshop', color: '#E65100' },
+    lecture: { label: 'Lecture', color: '#1A4A7B', bg: '#E8F4FD' },
+    lab: { label: 'Lab', color: '#1A5C2E', bg: '#E6F4EA' },
+    tutorial: { label: 'Tutorial', color: '#7B1C1C', bg: '#F5E6B0' },
+    seminar: { label: 'Seminar', color: '#6A1B9A', bg: '#F3E5F5' },
+    workshop: { label: 'Workshop', color: '#E65100', bg: '#FBE9E7' },
 };
 
-// ── Stat Card helper ──────────────────────────────────────────────────────────
-const StatCard = ({ icon, label, value, accent }) => (
-    <Paper
-        sx={{
-            p: 2.5, borderRadius: 3, flex: 1,
-            border: `1px solid rgba(123,28,28,0.1)`,
-            boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
-            display: 'flex', alignItems: 'center', gap: 2,
-        }}
-    >
-        <Avatar sx={{ bgcolor: accent, width: 48, height: 48 }}>{icon}</Avatar>
-        <Box>
-            <Typography variant="h4" fontWeight={800} color={UCU.maroon}>{value ?? '—'}</Typography>
-            <Typography variant="body2" color="text.secondary" fontWeight={600}>{label}</Typography>
-        </Box>
+// ── KPI Card ─────────────────────────────────────────────────────────────────
+const KpiCard = ({ icon, label, value, accent, lightBg, sub }) => (
+    <Paper sx={{
+        p: 0, borderRadius: 3, flex: 1, overflow: 'hidden',
+        border: '1px solid rgba(0,0,0,0.06)',
+        boxShadow: '0 1px 6px rgba(0,0,0,0.06)',
+    }}>
+        <Box sx={{ height: 3, bgcolor: accent }} />
+        <Stack direction="row" alignItems="center" spacing={2} sx={{ p: 2.5 }}>
+            <Box sx={{ bgcolor: lightBg, borderRadius: 2.5, p: 1.5, color: accent, flexShrink: 0 }}>
+                {icon}
+            </Box>
+            <Box>
+                <Typography variant="h4" fontWeight={900} color={accent} lineHeight={1.1}>
+                    {value ?? <CircularProgress size={22} sx={{ color: accent }} />}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" fontWeight={700}>{label}</Typography>
+                {sub && <Typography variant="caption" color="text.disabled" display="block">{sub}</Typography>}
+            </Box>
+        </Stack>
     </Paper>
 );
-
-// ── Custom Pie label ──────────────────────────────────────────────────────────
-const PieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
-    if (percent < 0.05) return null;
-    const RADIAN = Math.PI / 180;
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.55;
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.sin(-midAngle * RADIAN);
-    return (
-        <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={12} fontWeight={700}>
-            {`${(percent * 100).toFixed(0)}%`}
-        </text>
-    );
-};
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function Reports({ token }) {
@@ -84,10 +63,8 @@ export default function Reports({ token }) {
 
     useEffect(() => {
         (async () => {
-            setLoading(true);
             try {
-                const data = await getChapterStats(token);
-                setStats(data);
+                setStats(await getChapterStats(token));
             } catch (err) {
                 setError(err.message);
             } finally {
@@ -97,202 +74,230 @@ export default function Reports({ token }) {
     }, [token]);
 
     if (loading) return (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
-            <CircularProgress sx={{ color: UCU.maroon }} />
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, py: 12 }}>
+            <CircularProgress sx={{ color: UCU.maroon }} size={44} thickness={3} />
+            <Typography variant="body2" color="text.secondary">Loading analytics…</Typography>
         </Box>
     );
 
-    if (error) return <Alert severity="error">{error}</Alert>;
+    if (error) return <Alert severity="error" sx={{ borderRadius: 2 }}>{error}</Alert>;
 
-    // Normalise data for recharts
-    const pieData = (stats?.byType ?? []).map(r => ({
-        name: TYPE_META[r.chapter_type]?.label ?? r.chapter_type,
-        value: Number(r.count),
-        fill: TYPE_META[r.chapter_type]?.color ?? '#999',
-    }));
+    const activeCount = Number((stats?.byStatus ?? []).find(s => s.status === 'active')?.count ?? 0);
+    const archivedCount = Number((stats?.byStatus ?? []).find(s => s.status === 'archived')?.count ?? 0);
+    const total = Number(stats?.chapterTotal) || 1;
+    const activePct = Math.round((activeCount / total) * 100);
+    const archivedPct = Math.round((archivedCount / total) * 100);
 
-    const barData = (stats?.enrolmentsPerChapter ?? []).map(r => ({
-        name: r.name.length > 18 ? r.name.slice(0, 16) + '…' : r.name,
-        enrolled: Number(r.enrolled),
-    }));
+    // ── ApexCharts config ───────────────────────────────────────────────────────
+    const donutSeries = (stats?.byType ?? []).map(r => Number(r.count));
+    const donutLabels = (stats?.byType ?? []).map(r => TYPE_META[r.chapter_type]?.label ?? r.chapter_type);
+    const donutColors = (stats?.byType ?? []).map(r => TYPE_META[r.chapter_type]?.color ?? '#999');
 
-    const activeCount = (stats?.byStatus ?? []).find(s => s.status === 'active')?.count ?? 0;
-    const archivedCount = (stats?.byStatus ?? []).find(s => s.status === 'archived')?.count ?? 0;
+    const donutOptions = {
+        chart: { type: 'donut', toolbar: { show: false }, animations: { enabled: true, speed: 600 } },
+        labels: donutLabels,
+        colors: donutColors,
+        dataLabels: { enabled: true, formatter: (val) => `${Math.round(val)}%`, style: { fontSize: '12px', fontWeight: 800 }, dropShadow: { enabled: false } },
+        plotOptions: { pie: { donut: { size: '60%', labels: { show: true, total: { show: true, label: 'Total', fontSize: '13px', fontWeight: 700, color: '#555', formatter: (w) => w.globals.seriesTotals.reduce((a, b) => a + b, 0) } } } } },
+        legend: { position: 'bottom', fontSize: '12px', fontWeight: 600, markers: { width: 10, height: 10, radius: 5 }, itemMargin: { horizontal: 8, vertical: 4 } },
+        stroke: { width: 2 },
+        tooltip: { y: { formatter: (val) => `${val} chapter${val === 1 ? '' : 's'}` } },
+    };
+
+    const barCategories = (stats?.enrolmentsPerChapter ?? []).slice(0, 8).map(r => r.name.length > 14 ? r.name.slice(0, 13) + '…' : r.name);
+    const barSeries = [{ name: 'Enrolled', data: (stats?.enrolmentsPerChapter ?? []).slice(0, 8).map(r => Number(r.enrolled)) }];
+
+    const barOptions = {
+        chart: { type: 'bar', toolbar: { show: false }, animations: { enabled: true, speed: 600 } },
+        plotOptions: { bar: { borderRadius: 6, columnWidth: '55%', dataLabels: { position: 'top' } } },
+        dataLabels: { enabled: true, offsetY: -20, style: { fontSize: '11px', fontWeight: 700, colors: [UCU.maroon] } },
+        xaxis: { categories: barCategories, axisBorder: { show: false }, axisTicks: { show: false }, labels: { style: { fontSize: '11px', colors: '#777' }, rotate: -25, rotateAlways: true } },
+        yaxis: { labels: { style: { fontSize: '11px', colors: '#aaa' } } },
+        colors: [UCU.maroon],
+        grid: { borderColor: 'rgba(0,0,0,0.06)', strokeDashArray: 4, yaxis: { lines: { show: true } }, xaxis: { lines: { show: false } } },
+        tooltip: { y: { formatter: (val) => `${val} student${val === 1 ? '' : 's'}` } },
+        legend: { show: false },
+    };
 
     return (
-        <Box>
-            {/* ── Header ── */}
-            <Stack direction="row" alignItems="center" spacing={1.5} mb={3}>
-                <Box sx={{ width: 4, height: 26, bgcolor: UCU.gold, borderRadius: 1 }} />
-                <AssessmentIcon sx={{ color: UCU.maroon, fontSize: 28 }} />
-                <Typography variant="h5" fontWeight={800} color={UCU.maroon}>Reports & Analytics</Typography>
-            </Stack>
+        <Box sx={{ width: '100%' }}>
 
-            {/* ── Summary stat cards ── */}
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mb={3.5} flexWrap="wrap" useFlexGap>
-                <StatCard icon={<MenuBookIcon />} label="Total Chapters" value={stats?.chapterTotal} accent={UCU.maroon} />
-                <StatCard icon={<PeopleAltIcon />} label="Registered Users" value={stats?.userTotal} accent="#1A4A7B" />
-                <StatCard icon={<HowToRegIcon />} label="Total Enrolments" value={stats?.enrolments} accent="#1A5C2E" />
+            {/* ── Page header ── */}
+            <Box
+                sx={{
+                    mb: 3.5, borderRadius: 3, overflow: 'hidden',
+                    background: `linear-gradient(135deg, ${UCU.maroon} 0%, #A52828 100%)`,
+                    p: { xs: 2.5, md: 3 },
+                    boxShadow: '0 4px 20px rgba(123,28,28,0.28)',
+                    position: 'relative',
+                }}
+            >
+                <Box sx={{
+                    position: 'absolute', inset: 0, opacity: 0.04,
+                    backgroundImage: 'radial-gradient(circle at 20px 20px, white 1.5px, transparent 0)',
+                    backgroundSize: '36px 36px',
+                }} />
+                <Box sx={{ position: 'absolute', top: -50, right: -50, width: 180, height: 180, borderRadius: '50%', bgcolor: 'rgba(201,162,39,0.18)', filter: 'blur(35px)' }} />
+                <Stack direction="row" alignItems="center" spacing={2} sx={{ position: 'relative', zIndex: 1 }}>
+                    <Box sx={{ bgcolor: 'rgba(255,255,255,0.12)', borderRadius: 2, p: 1.2 }}>
+                        <AssessmentIcon sx={{ color: UCU.gold, fontSize: 28 }} />
+                    </Box>
+                    <Box>
+                        <Typography variant="h5" fontWeight={900} color={UCU.white}>Reports & Analytics</Typography>
+                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.65)' }}>
+                            Comprehensive overview of your UCU LMS data
+                        </Typography>
+                    </Box>
+                </Stack>
+            </Box>
+
+            {/* ── KPI Row ── */}
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mb={3.5} flexWrap="wrap" useFlexGap sx={{ width: '100%' }}>
+                <KpiCard icon={<MenuBookIcon />} label="Total Chapters" value={stats?.chapterTotal} accent={UCU.maroon} lightBg="#FDF2F2" sub="All time" />
+                <KpiCard icon={<PeopleAltIcon />} label="Registered Users" value={stats?.userTotal} accent="#1A4A7B" lightBg="#EEF4FB" sub="Learner accounts" />
+                <KpiCard icon={<HowToRegIcon />} label="Total Enrolments" value={stats?.enrolments} accent="#1A5C2E" lightBg="#EEF8F1" sub="Across all chapters" />
             </Stack>
 
             {/* ── Charts row ── */}
             <Grid container spacing={3} mb={3.5}>
 
-                {/* Donut chart — Chapters by type */}
-                <Grid item xs={12} md={5}>
-                    <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid rgba(123,28,28,0.1)', height: '100%' }}>
-                        <Typography variant="subtitle1" fontWeight={700} color={UCU.maroon} mb={1.5}>
-                            Chapters by Type
-                        </Typography>
-                        <Divider sx={{ mb: 2 }} />
-                        {pieData.length === 0 ? (
-                            <Typography variant="body2" color="text.secondary" textAlign="center" py={4}>No data available</Typography>
-                        ) : (
-                            <ResponsiveContainer width="100%" height={260}>
-                                <PieChart>
-                                    <Pie
-                                        data={pieData}
-                                        cx="50%" cy="50%"
-                                        innerRadius={65} outerRadius={105}
-                                        dataKey="value"
-                                        labelLine={false}
-                                        label={PieLabel}
-                                    >
-                                        {pieData.map((entry, i) => (
-                                            <Cell key={i} fill={entry.fill} />
-                                        ))}
-                                    </Pie>
-                                    <RTooltip formatter={(val, name) => [val, name]} />
-                                    <Legend iconType="circle" iconSize={10} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        )}
+                {/* Donut — chapters by type */}
+                <Grid item xs={12} md={6}>
+                    <Paper sx={{ borderRadius: 3, border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 6px rgba(0,0,0,0.06)', overflow: 'hidden', height: '100%' }}>
+                        <Box sx={{ px: 3, pt: 2.5, pb: 1.5 }}>
+                            <Typography variant="subtitle2" fontWeight={800}>Chapters by Type</Typography>
+                            <Typography variant="caption" color="text.disabled">Type distribution breakdown</Typography>
+                        </Box>
+                        <Divider />
+                        <Box sx={{ p: 1 }}>
+                            {donutSeries.length === 0 ? (
+                                <Typography variant="body2" color="text.secondary" textAlign="center" py={6}>No data available</Typography>
+                            ) : (
+                                <ReactApexChart type="donut" series={donutSeries} options={donutOptions} height={340} />
+                            )}
+                        </Box>
                     </Paper>
                 </Grid>
 
-                {/* Bar chart — Enrolments per chapter */}
-                <Grid item xs={12} md={7}>
-                    <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid rgba(123,28,28,0.1)', height: '100%' }}>
-                        <Typography variant="subtitle1" fontWeight={700} color={UCU.maroon} mb={1.5}>
-                            Enrolments per Chapter
-                        </Typography>
-                        <Divider sx={{ mb: 2 }} />
-                        {barData.length === 0 ? (
-                            <Typography variant="body2" color="text.secondary" textAlign="center" py={4}>No enrolment data</Typography>
-                        ) : (
-                            <ResponsiveContainer width="100%" height={260}>
-                                <BarChart data={barData} margin={{ top: 4, right: 10, bottom: 30, left: 0 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
-                                    <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-30} textAnchor="end" interval={0} />
-                                    <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                                    <RTooltip />
-                                    <Bar dataKey="enrolled" name="Enrolled" fill={UCU.maroon} radius={[4, 4, 0, 0]} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        )}
+                {/* Bar — enrolments per chapter */}
+                <Grid item xs={12} md={6}>
+                    <Paper sx={{ borderRadius: 3, border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 6px rgba(0,0,0,0.06)', overflow: 'hidden', height: '100%' }}>
+                        <Box sx={{ px: 3, pt: 2.5, pb: 1.5 }}>
+                            <Typography variant="subtitle2" fontWeight={800}>Enrolments per Chapter</Typography>
+                            <Typography variant="caption" color="text.disabled">Top 8 chapters by enrolled students</Typography>
+                        </Box>
+                        <Divider />
+                        <Box sx={{ p: 1 }}>
+                            {barSeries[0].data.length === 0 ? (
+                                <Typography variant="body2" color="text.secondary" textAlign="center" py={8}>No enrolment data</Typography>
+                            ) : (
+                                <ReactApexChart type="bar" series={barSeries} options={barOptions} height={340} />
+                            )}
+                        </Box>
                     </Paper>
                 </Grid>
             </Grid>
 
-            {/* ── Status + Recent row ── */}
+            {/* ── Bottom row: status panel + recent table ── */}
             <Grid container spacing={3}>
 
-                {/* Status breakdown */}
+                {/* Status panel */}
                 <Grid item xs={12} md={4}>
-                    <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid rgba(123,28,28,0.1)' }}>
-                        <Typography variant="subtitle1" fontWeight={700} color={UCU.maroon} mb={1.5}>
-                            Chapter Status
-                        </Typography>
-                        <Divider sx={{ mb: 2 }} />
-                        <Stack spacing={2}>
-                            {[
-                                { label: 'Active', count: activeCount, color: '#1A5C2E', bg: '#E6F4EA' },
-                                { label: 'Archived', count: archivedCount, color: '#5C1010', bg: '#FBE9E7' },
-                            ].map(row => (
-                                <Stack key={row.label} direction="row" justifyContent="space-between" alignItems="center">
-                                    <Stack direction="row" alignItems="center" spacing={1}>
-                                        <FiberManualRecordIcon sx={{ color: row.color, fontSize: 14 }} />
-                                        <Typography variant="body2" fontWeight={600}>{row.label}</Typography>
-                                    </Stack>
-                                    <Chip
-                                        label={row.count}
-                                        size="small"
-                                        sx={{ bgcolor: row.bg, color: row.color, fontWeight: 700, minWidth: 40 }}
-                                    />
-                                </Stack>
-                            ))}
-
-                            <Divider />
-                            {/* Percentage bars */}
-                            {[
-                                { label: 'Active', count: activeCount, color: '#1A5C2E' },
-                                { label: 'Archived', count: archivedCount, color: UCU.maroon },
-                            ].map(row => {
-                                const total = Number(stats?.chapterTotal) || 1;
-                                const pct = Math.round((Number(row.count) / total) * 100);
-                                return (
-                                    <Box key={row.label}>
-                                        <Stack direction="row" justifyContent="space-between">
-                                            <Typography variant="caption" color="text.secondary">{row.label}</Typography>
-                                            <Typography variant="caption" fontWeight={700}>{pct}%</Typography>
-                                        </Stack>
-                                        <Box sx={{ bgcolor: '#eee', borderRadius: 5, height: 7, overflow: 'hidden', mt: 0.5 }}>
-                                            <Box sx={{ width: `${pct}%`, bgcolor: row.color, height: '100%', borderRadius: 5, transition: 'width 0.8s ease' }} />
+                    <Paper sx={{ borderRadius: 3, border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 6px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+                        <Box sx={{ px: 3, pt: 2.5, pb: 1.5 }}>
+                            <Typography variant="subtitle2" fontWeight={800}>Chapter Status</Typography>
+                            <Typography variant="caption" color="text.disabled">Active vs archived overview</Typography>
+                        </Box>
+                        <Divider />
+                        <Box sx={{ p: 2.5 }}>
+                            <Grid container spacing={2} mb={2.5}>
+                                {[
+                                    { label: 'Active', count: activeCount, color: '#1A5C2E', bg: '#E6F4EA', icon: <CheckCircleOutlineIcon sx={{ fontSize: 20 }} /> },
+                                    { label: 'Archived', count: archivedCount, color: '#7B1C1C', bg: '#FDF2F2', icon: <ArchiveIcon sx={{ fontSize: 20 }} /> },
+                                ].map(s => (
+                                    <Grid item xs={6} key={s.label}>
+                                        <Box sx={{ bgcolor: s.bg, borderRadius: 2.5, p: 2, textAlign: 'center' }}>
+                                            <Box sx={{ color: s.color, mb: 0.5 }}>{s.icon}</Box>
+                                            <Typography variant="h4" fontWeight={900} color={s.color}>{s.count}</Typography>
+                                            <Typography variant="caption" color={s.color} fontWeight={600}>{s.label}</Typography>
                                         </Box>
+                                    </Grid>
+                                ))}
+                            </Grid>
+
+                            <Stack spacing={2}>
+                                {[
+                                    { label: 'Active', pct: activePct, color: '#1A5C2E' },
+                                    { label: 'Archived', pct: archivedPct, color: UCU.maroon },
+                                ].map(r => (
+                                    <Box key={r.label}>
+                                        <Stack direction="row" justifyContent="space-between" mb={0.6}>
+                                            <Typography variant="caption" color="text.secondary" fontWeight={600}>{r.label}</Typography>
+                                            <Typography variant="caption" fontWeight={800} color={r.color}>{r.pct}%</Typography>
+                                        </Stack>
+                                        <LinearProgress variant="determinate" value={r.pct}
+                                            sx={{
+                                                height: 8, borderRadius: 4, bgcolor: `${r.color}18`,
+                                                '& .MuiLinearProgress-bar': { bgcolor: r.color, borderRadius: 4 }
+                                            }} />
                                     </Box>
-                                );
-                            })}
-                        </Stack>
+                                ))}
+                            </Stack>
+                        </Box>
                     </Paper>
                 </Grid>
 
-                {/* Recent chapters table */}
+                {/* Recent chapters */}
                 <Grid item xs={12} md={8}>
-                    <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid rgba(123,28,28,0.1)' }}>
-                        <Typography variant="subtitle1" fontWeight={700} color={UCU.maroon} mb={1.5}>
-                            Recently Added Chapters
-                        </Typography>
-                        <Divider sx={{ mb: 1 }} />
+                    <Paper sx={{ borderRadius: 3, border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 6px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+                        <Box sx={{ px: 3, pt: 2.5, pb: 1.5 }}>
+                            <Typography variant="subtitle2" fontWeight={800}>Recently Added Chapters</Typography>
+                            <Typography variant="caption" color="text.disabled">Last 5 chapters created</Typography>
+                        </Box>
+                        <Divider />
                         <TableContainer>
                             <Table size="small">
                                 <TableHead>
-                                    <TableRow>
-                                        <TableCell sx={{ fontWeight: 700, color: UCU.maroon }}>Chapter</TableCell>
-                                        <TableCell sx={{ fontWeight: 700, color: UCU.maroon }}>Type</TableCell>
-                                        <TableCell sx={{ fontWeight: 700, color: UCU.maroon }}>Status</TableCell>
-                                        <TableCell sx={{ fontWeight: 700, color: UCU.maroon }}>Added</TableCell>
+                                    <TableRow sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}>
+                                        {['Chapter', 'Type', 'Status', 'Date Added'].map(h => (
+                                            <TableCell key={h} sx={{ fontWeight: 700, fontSize: 11, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5, py: 1.5 }}>{h}</TableCell>
+                                        ))}
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    {(stats?.recent ?? []).map(ch => (
-                                        <TableRow key={ch.id} hover sx={{ '&:last-child td': { border: 0 } }}>
-                                            <TableCell sx={{ fontWeight: 600 }}>{ch.name}</TableCell>
-                                            <TableCell>
-                                                <Chip
-                                                    label={TYPE_META[ch.chapter_type]?.label ?? ch.chapter_type}
-                                                    size="small"
-                                                    sx={{
-                                                        bgcolor: `${TYPE_META[ch.chapter_type]?.color ?? '#777'}18`,
-                                                        color: TYPE_META[ch.chapter_type]?.color ?? '#777',
-                                                        fontWeight: 700, fontSize: 11,
-                                                    }}
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <Chip
-                                                    label={ch.status === 'active' ? 'Active' : 'Archived'}
-                                                    size="small"
-                                                    sx={{ bgcolor: ch.status === 'active' ? '#E6F4EA' : '#eee', color: ch.status === 'active' ? '#1A5C2E' : '#666', fontWeight: 600, fontSize: 11 }}
-                                                />
-                                            </TableCell>
-                                            <TableCell sx={{ color: 'text.secondary', fontSize: 12 }}>
-                                                {ch.created_at ? new Date(ch.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
+                                    {(stats?.recent ?? []).map((ch, idx) => {
+                                        const meta = TYPE_META[ch.chapter_type] ?? { label: ch.chapter_type, color: '#777', bg: '#eee' };
+                                        return (
+                                            <TableRow key={ch.id} hover
+                                                sx={{ '&:last-child td': { border: 0 }, transition: '0.15s', '&:hover': { bgcolor: 'rgba(123,28,28,0.02)' } }}>
+                                                <TableCell>
+                                                    <Stack direction="row" alignItems="center" spacing={1.5}>
+                                                        <Avatar sx={{ bgcolor: meta.bg, color: meta.color, width: 32, height: 32 }}>
+                                                            <MenuBookIcon sx={{ fontSize: 15 }} />
+                                                        </Avatar>
+                                                        <Typography variant="body2" fontWeight={700}>{ch.name}</Typography>
+                                                    </Stack>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Chip label={meta.label} size="small"
+                                                        sx={{ bgcolor: meta.bg, color: meta.color, fontWeight: 700, fontSize: 10, height: 20 }} />
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Chip
+                                                        label={ch.status === 'active' ? 'Active' : 'Archived'}
+                                                        size="small"
+                                                        sx={{ bgcolor: ch.status === 'active' ? '#E6F4EA' : '#F5F5F5', color: ch.status === 'active' ? '#1A5C2E' : '#888', fontWeight: 600, fontSize: 10, height: 20 }}
+                                                    />
+                                                </TableCell>
+                                                <TableCell sx={{ color: 'text.secondary', fontSize: 12, whiteSpace: 'nowrap' }}>
+                                                    {ch.created_at ? new Date(ch.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
                                     {(!stats?.recent || stats.recent.length === 0) && (
                                         <TableRow>
-                                            <TableCell colSpan={4} align="center" sx={{ color: 'text.secondary', py: 3 }}>No chapter data yet</TableCell>
+                                            <TableCell colSpan={4} align="center" sx={{ color: 'text.secondary', py: 4 }}>No chapter data yet</TableCell>
                                         </TableRow>
                                     )}
                                 </TableBody>
